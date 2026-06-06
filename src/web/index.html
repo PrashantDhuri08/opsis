@@ -1,0 +1,1533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OpsisAI - Assistant Dashboard</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Marked for Markdown Rendering -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  
+  <style>
+    :root {
+      --bg-dark: #070a13;
+      --bg-card: rgba(16, 22, 37, 0.6);
+      --bg-card-hover: rgba(22, 32, 53, 0.8);
+      --border-color: rgba(255, 255, 255, 0.05);
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --primary: #0ea5e9;
+      --primary-hover: #0284c7;
+      --primary-gradient: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%);
+      --success: #10b981;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --sidebar-width: 320px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg-dark);
+      color: var(--text-primary);
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+    }
+
+    /* Background Gradients */
+    .bg-blobs {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: -1;
+      overflow: hidden;
+      background: radial-gradient(circle at 10% 20%, rgba(14, 165, 233, 0.05) 0%, transparent 40%),
+                  radial-gradient(circle at 80% 80%, rgba(37, 99, 235, 0.05) 0%, transparent 40%);
+    }
+
+    /* Sidebar Dashboard */
+    .sidebar {
+      width: var(--sidebar-width);
+      height: 100vh;
+      background: rgba(8, 11, 20, 0.85);
+      border-right: 1px solid var(--border-color);
+      backdrop-filter: blur(25px);
+      display: flex;
+      flex-direction: column;
+      padding: 24px;
+      z-index: 10;
+      overflow-y: auto;
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .sidebar.collapsed {
+      transform: translateX(-100%);
+      margin-left: calc(-1 * var(--sidebar-width));
+    }
+
+    .sidebar::-webkit-scrollbar {
+      width: 4px;
+    }
+    .sidebar::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 2px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .brand-logo {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: var(--primary-gradient);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(14, 165, 233, 0.25);
+    }
+
+    .brand-name {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      color: var(--text-primary);
+    }
+
+    .connection-status {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      color: var(--text-secondary);
+      background: rgba(255, 255, 255, 0.02);
+      padding: 4px 8px;
+      border-radius: 20px;
+      border: 1px solid var(--border-color);
+      width: fit-content;
+      margin-bottom: 24px;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: var(--success);
+      box-shadow: 0 0 8px var(--success);
+      transition: all 0.3s ease;
+    }
+
+    .status-dot.loading {
+      background-color: var(--warning);
+      box-shadow: 0 0 8px var(--warning);
+      animation: pulse 1s infinite alternate;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 0.4; }
+      100% { opacity: 1; }
+    }
+
+    .section-title {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-secondary);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .sidebar-widget {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      padding: 14px;
+      margin-bottom: 24px;
+      backdrop-filter: blur(10px);
+    }
+
+    /* Model Selector Styling */
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .form-group label {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .form-input {
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 8px 12px;
+      color: var(--text-primary);
+      font-size: 13px;
+      font-family: inherit;
+      width: 100%;
+      outline: none;
+      transition: border-color 0.2s ease;
+    }
+    .form-input:focus {
+      border-color: var(--primary);
+    }
+    select.form-input option {
+      background: #0d111a;
+      color: var(--text-primary);
+    }
+
+    .disk-meter {
+      margin-top: 8px;
+    }
+
+    .disk-progress-bg {
+      height: 6px;
+      background: rgba(255, 255, 255, 0.04);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-bottom: 8px;
+    }
+
+    .disk-progress-bar {
+      height: 100%;
+      background: var(--primary-gradient);
+      width: 0%;
+      transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .disk-details {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+
+    .disk-details span strong {
+      color: var(--text-primary);
+    }
+
+    .snapshot-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      overflow-y: auto;
+      max-height: 180px;
+      padding-right: 4px;
+    }
+
+    .snapshot-list::-webkit-scrollbar {
+      width: 4px;
+    }
+    .snapshot-list::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 2px;
+    }
+
+    .snapshot-item {
+      background: rgba(255, 255, 255, 0.01);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-size: 11.5px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .snapshot-item:hover {
+      background: var(--bg-card-hover);
+      border-color: rgba(14, 165, 233, 0.2);
+    }
+
+    .snapshot-date {
+      font-weight: 500;
+      color: var(--text-primary);
+      margin-bottom: 2px;
+    }
+
+    .snapshot-space {
+      color: var(--text-secondary);
+    }
+
+    .btn {
+      width: 100%;
+      background: var(--primary-gradient);
+      border: none;
+      color: white;
+      padding: 10px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 12.5px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 10px rgba(14, 165, 233, 0.2);
+    }
+
+    .btn:hover {
+      opacity: 0.9;
+      transform: translateY(-1px);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+      box-shadow: none;
+      margin-top: 10px;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    /* Main Chat Container */
+    .chat-container {
+      flex-grow: 1;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    .chat-header {
+      height: 80px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+      background: rgba(9, 13, 22, 0.4);
+      backdrop-filter: blur(10px);
+      z-index: 5;
+    }
+
+    .chat-header-left {
+      display: flex;
+      align-items: center;
+    }
+
+    /* Collapsible Sidebar Button */
+    .toggle-sidebar-btn {
+      background: none;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      color: var(--text-secondary);
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      margin-right: 16px;
+    }
+
+    .toggle-sidebar-btn:hover {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-primary);
+      border-color: rgba(14, 165, 233, 0.3);
+    }
+
+    .chat-header-info h1 {
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: -0.2px;
+    }
+
+    .chat-header-info p {
+      font-size: 11.5px;
+      color: var(--text-secondary);
+    }
+
+    .clear-chat-btn {
+      background: none;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      color: var(--text-secondary);
+      padding: 6px 12px;
+      font-size: 11.5px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .clear-chat-btn:hover {
+      background: rgba(239, 68, 68, 0.06);
+      color: var(--danger);
+      border-color: rgba(239, 68, 68, 0.15);
+    }
+
+    /* Chat Messages List */
+    .messages-list {
+      flex-grow: 1;
+      overflow-y: auto;
+      padding: 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .messages-list::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .messages-list::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.04);
+      border-radius: 3px;
+    }
+
+    .message {
+      max-width: 85%;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      animation: fadeIn 0.3s ease forwards;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .message.user {
+      align-self: flex-end;
+    }
+
+    .message.assistant {
+      align-self: flex-start;
+    }
+
+    .message-bubble {
+      padding: 14px 18px;
+      border-radius: 16px;
+      font-size: 13.5px;
+      line-height: 1.6;
+    }
+
+    .message.user .message-bubble {
+      background: var(--primary-gradient);
+      color: white;
+      border-bottom-right-radius: 3px;
+      box-shadow: 0 4px 12px rgba(14, 165, 233, 0.15);
+    }
+
+    .message.assistant .message-bubble {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-bottom-left-radius: 3px;
+      color: var(--text-primary);
+      backdrop-filter: blur(10px);
+    }
+
+    /* Markdown styling inside assistant bubble */
+    .message-bubble p {
+      margin-bottom: 12px;
+    }
+    .message-bubble p:last-child {
+      margin-bottom: 0;
+    }
+    .message-bubble ul, .message-bubble ol {
+      margin-left: 20px;
+      margin-bottom: 12px;
+    }
+    .message-bubble li {
+      margin-bottom: 4px;
+    }
+    .message-bubble code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11.5px;
+      background: rgba(255, 255, 255, 0.05);
+      padding: 2px 5px;
+      border-radius: 4px;
+    }
+    .message-bubble pre {
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 10px;
+      overflow-x: auto;
+      margin: 12px 0;
+    }
+    .message-bubble pre code {
+      background: none;
+      padding: 0;
+      font-size: 11.5px;
+      color: #cbd5e1;
+    }
+    .message-bubble strong {
+      font-weight: 600;
+      color: white;
+    }
+    .message-bubble blockquote {
+      border-left: 3px solid var(--primary);
+      padding-left: 12px;
+      color: var(--text-secondary);
+      margin: 12px 0;
+      font-style: italic;
+    }
+
+    .message-info {
+      font-size: 10.5px;
+      color: var(--text-secondary);
+      display: flex;
+      gap: 6px;
+    }
+
+    .message.user .message-info {
+      justify-content: flex-end;
+    }
+
+    /* Agent Reasoning Accordion */
+    .reasoning-accordion {
+      margin-top: 10px;
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.01);
+    }
+
+    .reasoning-header {
+      padding: 8px 12px;
+      background: rgba(255, 255, 255, 0.01);
+      font-size: 11.5px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: all 0.2s ease;
+    }
+
+    .reasoning-header:hover {
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text-primary);
+    }
+
+    .reasoning-body {
+      padding: 12px;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      background: rgba(0, 0, 0, 0.1);
+      max-height: 250px;
+      overflow-y: auto;
+    }
+
+    .reasoning-step {
+      border-left: 2px dashed rgba(14, 165, 233, 0.3);
+      padding-left: 12px;
+      margin-left: 4px;
+    }
+
+    .step-thought {
+      font-size: 12px;
+      font-style: italic;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+    }
+
+    .step-thought strong {
+      color: var(--text-primary);
+      font-style: normal;
+    }
+
+    .step-tool {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--primary);
+      background: rgba(14, 165, 233, 0.05);
+      padding: 3px 6px;
+      border-radius: 4px;
+      width: fit-content;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      border: 1px solid rgba(14, 165, 233, 0.2);
+    }
+
+    .step-observation {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10.5px;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 8px;
+      overflow-x: auto;
+      max-height: 120px;
+      color: #94a3b8;
+    }
+
+    /* Input Panel */
+    .input-panel {
+      padding: 16px 32px 24px;
+      background: linear-gradient(to top, var(--bg-dark) 80%, transparent);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      z-index: 5;
+    }
+
+    .suggestions {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+
+    .suggestions::-webkit-scrollbar {
+      height: 4px;
+    }
+    .suggestions::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.04);
+      border-radius: 2px;
+    }
+
+    .suggestion-chip {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 6px 12px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .suggestion-chip:hover {
+      background: rgba(14, 165, 233, 0.06);
+      border-color: rgba(14, 165, 233, 0.3);
+      color: var(--text-primary);
+    }
+
+    .input-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 6px 12px 6px 6px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      backdrop-filter: blur(10px);
+      transition: border-color 0.2s ease;
+    }
+
+    .input-box:focus-within {
+      border-color: rgba(14, 165, 233, 0.4);
+    }
+
+    .chat-input {
+      flex-grow: 1;
+      background: none;
+      border: none;
+      outline: none;
+      color: var(--text-primary);
+      font-size: 13.5px;
+      font-family: inherit;
+      padding: 10px;
+      resize: none;
+      height: 40px;
+      max-height: 120px;
+    }
+
+    .chat-input::placeholder {
+      color: rgba(148, 163, 184, 0.5);
+    }
+
+    .send-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      background: var(--primary-gradient);
+      border: none;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 10px rgba(14, 165, 233, 0.2);
+    }
+
+    .send-btn:hover {
+      transform: scale(1.02);
+      opacity: 0.95;
+    }
+
+    .send-btn:active {
+      transform: scale(0.98);
+    }
+
+    .send-btn:disabled {
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-secondary);
+      box-shadow: none;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* Welcome state style */
+    .welcome-container {
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 40px;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .welcome-icon {
+      width: 64px;
+      height: 64px;
+      border-radius: 16px;
+      background: var(--primary-gradient);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 15px rgba(14, 165, 233, 0.2);
+    }
+
+    .welcome-container h2 {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      letter-spacing: -0.5px;
+    }
+
+    .welcome-container p {
+      color: var(--text-secondary);
+      font-size: 14px;
+      line-height: 1.6;
+      margin-bottom: 24px;
+    }
+
+    /* Modal Styling */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(5px);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    .modal-overlay.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal {
+      background: #0d111a;
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      width: 90%;
+      max-width: 650px;
+      max-height: 80vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transform: scale(0.95);
+      transition: transform 0.3s ease;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+    }
+
+    .modal-overlay.open .modal {
+      transform: scale(1);
+    }
+
+    .modal-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .modal-title {
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+    }
+
+    .modal-close:hover {
+      color: white;
+    }
+
+    .modal-body {
+      padding: 20px;
+      overflow-y: auto;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .modal-body pre {
+      background: rgba(0, 0, 0, 0.2);
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border-color);
+      overflow-x: auto;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-blobs"></div>
+
+  <!-- Sidebar Widget Panel -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="brand-logo">
+        <i data-lucide="shield" style="color: white; width: 18px; height: 18px;"></i>
+      </div>
+      <div>
+        <div class="brand-name">OpsisAI</div>
+      </div>
+    </div>
+    
+    <div class="connection-status">
+      <span class="status-dot" id="status-dot"></span>
+      <span id="status-text">Checking API...</span>
+    </div>
+
+    <!-- Model Configuration Widget -->
+    <div class="section-title">
+      <span>Model Configuration</span>
+      <i data-lucide="settings" style="width: 13px; height: 13px;"></i>
+    </div>
+    <div class="sidebar-widget">
+      <div class="form-group">
+        <label for="provider-select">Provider</label>
+        <select id="provider-select" class="form-input">
+          <option value="ollama">Local Ollama</option>
+          <option value="gemini">Google Gemini</option>
+          <option value="openrouter">OpenRouter</option>
+        </select>
+      </div>
+      <div class="form-group" style="margin-top: 10px;">
+        <label>Model Name</label>
+        <!-- For Ollama / OpenRouter: Text input -->
+        <input type="text" id="model-input" class="form-input" placeholder="qwen3:4b">
+        <!-- For Gemini: Select Dropdown -->
+        <select id="model-select-gemini" class="form-input" style="display: none;">
+          <option value="gemini-2.5-flash">gemini-2.5-flash (Recommended)</option>
+          <option value="gemini-2.5-pro">gemini-2.5-pro</option>
+          <option value="gemini-1.5-flash">gemini-1.5-flash</option>
+          <option value="gemini-1.5-pro">gemini-1.5-pro</option>
+        </select>
+      </div>
+      <div class="form-group" id="apikey-group" style="margin-top: 10px; display: none;">
+        <label for="apikey-input">API Key</label>
+        <input type="password" id="apikey-input" class="form-input" placeholder="Enter API Key">
+      </div>
+    </div>
+
+    <!-- Storage Widget -->
+    <div class="section-title">
+      <span>System Storage</span>
+      <i data-lucide="hard-drive" style="width: 13px; height: 13px;"></i>
+    </div>
+    <div class="sidebar-widget">
+      <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 500; margin-bottom: 6px;">
+        <span>System Volume (C:)</span>
+        <span id="disk-percent-text">0% Used</span>
+      </div>
+      <div class="disk-meter">
+        <div class="disk-progress-bg">
+          <div class="disk-progress-bar" id="disk-progress"></div>
+        </div>
+        <div class="disk-details">
+          <span>Free: <strong id="disk-free">0 GB</strong></span>
+          <span>Total: <strong id="disk-total">0 GB</strong></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- History & Snapshots -->
+    <div class="section-title">
+      <span>Snapshots History</span>
+      <i data-lucide="history" style="width: 13px; height: 13px;"></i>
+    </div>
+    <div class="snapshot-list" id="snapshot-list">
+      <div style="font-size: 11px; color: var(--text-secondary); text-align: center; margin-top: 20px;">
+        No snapshots taken yet.
+      </div>
+    </div>
+
+    <button class="btn" id="take-snapshot-btn" style="margin-top: 15px;">
+      <i data-lucide="camera" style="width: 15px; height: 15px;"></i>
+      Take Snapshot
+    </button>
+  </aside>
+
+  <!-- Chat Frame -->
+  <main class="chat-container">
+    <header class="chat-header">
+      <div class="chat-header-left">
+        <button class="toggle-sidebar-btn" id="toggle-sidebar-btn" title="Toggle Sidebar">
+          <i data-lucide="menu" style="width: 18px; height: 18px;"></i>
+        </button>
+        <div class="chat-header-info">
+          <h1>OpsisAI Thread</h1>
+          <p>Completely Read-Only PC Security & Performance Analysis</p>
+        </div>
+      </div>
+      <button class="clear-chat-btn" id="clear-chat-btn">
+        <i data-lucide="trash-2" style="width: 13px; height: 13px;"></i>
+        Clear Conversation
+      </button>
+    </header>
+
+    <div class="messages-list" id="messages-list">
+      <!-- Welcome Screen -->
+      <div class="welcome-container" id="welcome-screen">
+        <div class="welcome-icon">
+          <i data-lucide="activity" style="color: white; width: 32px; height: 32px;"></i>
+        </div>
+        <h2>Identify Performance Bottlenecks</h2>
+        <p>Ask OpsisAI to investigate storage bottlenecks, large files, memory leaks, startup bloat, or download directories. The assistant will run local scans and diagnose issues safely.</p>
+      </div>
+    </div>
+
+    <!-- Bottom Input Deck -->
+    <div class="input-panel">
+      <div class="suggestions">
+        <div class="suggestion-chip" onclick="applySuggestion('Why is my C drive full?')">
+          <i data-lucide="hard-drive" style="width: 12px; height: 12px;"></i>
+          Why is my C drive full?
+        </div>
+        <div class="suggestion-chip" onclick="applySuggestion('What applications are running at startup?')">
+          <i data-lucide="clock" style="width: 12px; height: 12px;"></i>
+          What apps run at startup?
+        </div>
+        <div class="suggestion-chip" onclick="applySuggestion('What is consuming my system memory?')">
+          <i data-lucide="cpu" style="width: 12px; height: 12px;"></i>
+          What is eating my RAM?
+        </div>
+        <div class="suggestion-chip" onclick="applySuggestion('Compare my storage usage with historical snapshot data.')">
+          <i data-lucide="bar-chart-2" style="width: 12px; height: 12px;"></i>
+          Analyze snapshot history
+        </div>
+      </div>
+
+      <div class="input-box">
+        <textarea class="chat-input" id="chat-input" placeholder="Ask OpsisAI to investigate performance..." rows="1"></textarea>
+        <button class="send-btn" id="send-btn" disabled>
+          <i data-lucide="arrow-up" style="width: 16px; height: 16px;"></i>
+        </button>
+      </div>
+    </div>
+  </main>
+
+  <!-- Snapshot Detail Modal -->
+  <div class="modal-overlay" id="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modal-title">Snapshot details</h3>
+        <button class="modal-close" onclick="closeModal()">
+          <i data-lucide="x" style="width: 16px; height: 16px;"></i>
+        </button>
+      </div>
+      <div class="modal-body" id="modal-body"></div>
+    </div>
+  </div>
+
+  <script>
+    // Config default values per provider
+    const defaults = {
+      ollama: {
+        model: 'qwen3:4b',
+        placeholder: 'qwen3:4b',
+        showKey: false,
+        useSelect: false
+      },
+      gemini: {
+        model: 'gemini-2.5-flash',
+        showKey: true,
+        useSelect: true
+      },
+      openrouter: {
+        model: 'google/gemini-2.5-flash',
+        placeholder: 'google/gemini-2.5-flash',
+        showKey: true,
+        useSelect: false
+      }
+    };
+
+    // Elements
+    const chatInput = document.getElementById('chat-input');
+    const sendBtn = document.getElementById('send-btn');
+    const messagesList = document.getElementById('messages-list');
+    const welcomeScreen = document.getElementById('welcome-screen');
+    const statusDot = document.getElementById('status-dot');
+    const statusText = document.getElementById('status-text');
+    const diskPercentText = document.getElementById('disk-percent-text');
+    const diskProgress = document.getElementById('disk-progress');
+    const diskFree = document.getElementById('disk-free');
+    const diskTotal = document.getElementById('disk-total');
+    const snapshotList = document.getElementById('snapshot-list');
+    const takeSnapshotBtn = document.getElementById('take-snapshot-btn');
+    const clearChatBtn = document.getElementById('clear-chat-btn');
+    const modalOverlay = document.getElementById('modal-overlay');
+    const modalTitle = document.getElementById('modal-title');
+    const modalBody = document.getElementById('modal-body');
+    const sidebar = document.getElementById('sidebar');
+    const toggleSidebarBtn = document.getElementById('toggle-sidebar-btn');
+
+    // Configuration Inputs
+    const providerSelect = document.getElementById('provider-select');
+    const modelInput = document.getElementById('model-input');
+    const modelSelectGemini = document.getElementById('model-select-gemini');
+    const apikeyInput = document.getElementById('apikey-input');
+    const apikeyGroup = document.getElementById('apikey-group');
+
+    // State variables
+    let isGenerating = false;
+    const sessionId = 'session_' + Math.random().toString(36).substring(2, 10);
+
+    // Initial setup
+    lucide.createIcons();
+
+    // Auto-resize textarea
+    chatInput.addEventListener('input', () => {
+      chatInput.style.height = 'auto';
+      chatInput.style.height = Math.min(chatInput.scrollHeight, 120) + 'px';
+      sendBtn.disabled = !chatInput.value.trim() || isGenerating;
+    });
+
+    // Check textarea keypress
+    chatInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+
+    sendBtn.addEventListener('click', sendMessage);
+    takeSnapshotBtn.addEventListener('click', createSnapshot);
+    clearChatBtn.addEventListener('click', clearHistory);
+
+    // Sidebar collapse toggler
+    toggleSidebarBtn.addEventListener('click', () => {
+      const isCollapsed = sidebar.classList.toggle('collapsed');
+      localStorage.setItem('opsis_sidebar_collapsed', isCollapsed ? 'true' : 'false');
+    });
+
+    // Config inputs change events
+    providerSelect.addEventListener('change', () => {
+      const provider = providerSelect.value;
+      localStorage.setItem('opsis_provider', provider);
+      
+      const config = defaults[provider];
+      apikeyGroup.style.display = config.showKey ? 'flex' : 'none';
+      
+      if (config.useSelect) {
+        modelInput.style.display = 'none';
+        modelSelectGemini.style.display = 'block';
+        
+        // Load cached select option
+        const savedModel = localStorage.getItem(`opsis_model_${provider}`);
+        if (savedModel) {
+          modelSelectGemini.value = savedModel;
+        } else {
+          modelSelectGemini.value = config.model;
+        }
+      } else {
+        modelInput.style.display = 'block';
+        modelSelectGemini.style.display = 'none';
+        modelInput.placeholder = config.placeholder;
+        
+        // Load cached text input
+        const savedModel = localStorage.getItem(`opsis_model_${provider}`);
+        modelInput.value = savedModel || '';
+      }
+
+      // Load cached API key
+      apikeyInput.value = localStorage.getItem(`opsis_apikey_${provider}`) || '';
+      
+      updateStatusDisplay();
+    });
+
+    modelInput.addEventListener('input', () => {
+      const provider = providerSelect.value;
+      localStorage.setItem(`opsis_model_${provider}`, modelInput.value);
+    });
+
+    modelSelectGemini.addEventListener('change', () => {
+      const provider = providerSelect.value;
+      localStorage.setItem(`opsis_model_${provider}`, modelSelectGemini.value);
+    });
+
+    apikeyInput.addEventListener('input', () => {
+      const provider = providerSelect.value;
+      localStorage.setItem(`opsis_apikey_${provider}`, apikeyInput.value);
+      updateStatusDisplay();
+    });
+
+    // Fetch snapshot metrics and history on load
+    window.addEventListener('load', async () => {
+      loadSettings();
+      await refreshSnapshots();
+      await loadChatHistory();
+    });
+
+    function loadSettings() {
+      // 1. Sidebar state
+      const sidebarCollapsed = localStorage.getItem('opsis_sidebar_collapsed') === 'true';
+      if (sidebarCollapsed) {
+        sidebar.classList.add('collapsed');
+      }
+
+      // 2. Provider
+      const savedProvider = localStorage.getItem('opsis_provider') || 'ollama';
+      providerSelect.value = savedProvider;
+      
+      // 3. Display model inputs & API Key inputs
+      const config = defaults[savedProvider];
+      apikeyGroup.style.display = config.showKey ? 'flex' : 'none';
+
+      if (config.useSelect) {
+        modelInput.style.display = 'none';
+        modelSelectGemini.style.display = 'block';
+        modelSelectGemini.value = localStorage.getItem(`opsis_model_${savedProvider}`) || config.model;
+      } else {
+        modelInput.style.display = 'block';
+        modelSelectGemini.style.display = 'none';
+        modelInput.placeholder = config.placeholder;
+        modelInput.value = localStorage.getItem(`opsis_model_${savedProvider}`) || '';
+      }
+
+      // 4. Load API Key
+      apikeyInput.value = localStorage.getItem(`opsis_apikey_${savedProvider}`) || '';
+      
+      updateStatusDisplay();
+    }
+
+    function updateStatusDisplay() {
+      const provider = providerSelect.value;
+      if (provider === 'ollama') {
+        setStatus('ready', 'Local Ollama Selected');
+      } else if (provider === 'gemini') {
+        const hasKey = apikeyInput.value.trim().length > 0;
+        setStatus(hasKey ? 'ready' : 'error', hasKey ? 'Gemini API Ready' : 'Gemini Key Needed');
+      } else if (provider === 'openrouter') {
+        const hasKey = apikeyInput.value.trim().length > 0;
+        setStatus(hasKey ? 'ready' : 'error', hasKey ? 'OpenRouter API Ready' : 'OpenRouter Key Needed');
+      }
+    }
+
+    function applySuggestion(text) {
+      chatInput.value = text;
+      chatInput.dispatchEvent(new Event('input'));
+      chatInput.focus();
+    }
+
+    function setStatus(status, text) {
+      statusDot.className = 'status-dot';
+      if (status === 'loading') {
+        statusDot.classList.add('loading');
+      } else if (status === 'error') {
+        statusDot.style.backgroundColor = 'var(--danger)';
+        statusDot.style.boxShadow = '0 0 8px var(--danger)';
+      } else {
+        statusDot.style.backgroundColor = 'var(--success)';
+        statusDot.style.boxShadow = '0 0 8px var(--success)';
+      }
+      statusText.textContent = text;
+    }
+
+    function formatBytes(bytes) {
+      if (bytes === 0 || !bytes) return '0 Bytes';
+      const k = 1024;
+      const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    async function loadChatHistory() {
+      try {
+        const response = await fetch(`/api/history?sessionId=${sessionId}`);
+        const data = await response.json();
+        
+        if (data.success && data.history && data.history.length > 0) {
+          welcomeScreen.style.display = 'none';
+          data.history.forEach(msg => {
+            appendMessage(msg.role, msg.content);
+          });
+        }
+      } catch (err) {
+        console.error('Failed to load chat history:', err);
+      }
+    }
+
+    async function clearHistory() {
+      if (!confirm('Are you sure you want to clear this conversation?')) return;
+      
+      try {
+        const response = await fetch(`/api/history?sessionId=${sessionId}`, {
+          method: 'DELETE'
+        });
+        const data = await response.json();
+        if (data.success) {
+          messagesList.innerHTML = '';
+          messagesList.appendChild(welcomeScreen);
+          welcomeScreen.style.display = 'flex';
+        }
+      } catch (err) {
+        console.error('Failed to clear history:', err);
+      }
+    }
+
+    async function refreshSnapshots() {
+      try {
+        const response = await fetch('/api/snapshots?limit=5');
+        const data = await response.json();
+        
+        if (data.success && data.snapshots && data.snapshots.length > 0) {
+          // Update Disk space widget using the latest snapshot details
+          const latest = data.snapshots[0];
+          const usedBytes = latest.total_disk_bytes - latest.free_disk_bytes;
+          const percentUsed = latest.total_disk_bytes > 0 
+            ? Math.round((usedBytes / latest.total_disk_bytes) * 100) 
+            : 0;
+
+          diskPercentText.textContent = `${percentUsed}% Used`;
+          diskProgress.style.width = `${percentUsed}%`;
+          diskFree.textContent = formatBytes(latest.free_disk_bytes);
+          diskTotal.textContent = formatBytes(latest.total_disk_bytes);
+
+          // Populate list
+          snapshotList.innerHTML = '';
+          data.snapshots.forEach((snap, idx) => {
+            const item = document.createElement('div');
+            item.className = 'snapshot-item';
+            item.onclick = () => showSnapshotDetails(snap);
+            
+            const freeGB = (snap.free_disk_bytes / (1024*1024*1024)).toFixed(1);
+            const totalGB = (snap.total_disk_bytes / (1024*1024*1024)).toFixed(1);
+            
+            item.innerHTML = `
+              <div class="snapshot-date">Snapshot #${snap.id}</div>
+              <div style="font-size: 10px; color: var(--text-secondary); margin-bottom: 2px;">${snap.created_at}</div>
+              <div class="snapshot-space">Free: ${freeGB} GB / ${totalGB} GB</div>
+            `;
+            snapshotList.appendChild(item);
+          });
+        } else {
+          // If no snapshots, try to create an initial one
+          setTimeout(createSnapshot, 1000);
+        }
+      } catch (err) {
+        console.error('Failed to load snapshots:', err);
+      }
+    }
+
+    async function createSnapshot() {
+      setStatus('loading', 'Scanning System...');
+      takeSnapshotBtn.disabled = true;
+      takeSnapshotBtn.innerHTML = `<i data-lucide="loader" class="loading" style="width:14px; height:14px;"></i> Scanning...`;
+      lucide.createIcons();
+
+      try {
+        const response = await fetch('/api/snapshots', { method: 'POST' });
+        const data = await response.json();
+        
+        if (data.success) {
+          updateStatusDisplay();
+          await refreshSnapshots();
+        } else {
+          setStatus('error', 'Scan Failed');
+        }
+      } catch (err) {
+        console.error('Failed to create snapshot:', err);
+        setStatus('error', 'Scan Error');
+      } finally {
+        takeSnapshotBtn.disabled = false;
+        takeSnapshotBtn.innerHTML = `<i data-lucide="camera" style="width: 15px; height: 15px;"></i> Take Snapshot`;
+        lucide.createIcons();
+      }
+    }
+
+    function showSnapshotDetails(snap) {
+      modalTitle.textContent = `System Snapshot Details (ID: #${snap.id})`;
+      
+      const freeGB = (snap.free_disk_bytes / (1024*1024*1024)).toFixed(2);
+      const totalGB = (snap.total_disk_bytes / (1024*1024*1024)).toFixed(2);
+      const usedGB = ((snap.total_disk_bytes - snap.free_disk_bytes) / (1024*1024*1024)).toFixed(2);
+
+      let processesHtml = snap.top_processes.map(p => `
+        <div style="display:flex; justify-content:space-between; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.03); font-size:12px;">
+          <span>${p.name} <small style="color:var(--text-secondary)">(${p.pid})</small></span>
+          <span><strong>${p.memoryMB} MB</strong></span>
+        </div>
+      `).join('') || '<div style="color:var(--text-secondary); font-size:12px;">No process data</div>';
+
+      let foldersHtml = snap.largest_folders.map(f => `
+        <div style="display:flex; justify-content:space-between; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.03); font-size:12px;">
+          <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:70%;" title="${f.path}">${f.name}</span>
+          <span><strong>${(f.size / (1024*1024*1024)).toFixed(2)} GB</strong></span>
+        </div>
+      `).join('') || '<div style="color:var(--text-secondary); font-size:12px;">No folder data</div>';
+
+      modalBody.innerHTML = `
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px; margin-bottom: 24px;">
+          <div>
+            <h4 style="margin-bottom: 10px; color: var(--text-primary); border-bottom: 1px solid var(--border-color); padding-bottom: 4px;">Storage Overview</h4>
+            <p>Date: <strong>${snap.created_at}</strong></p>
+            <p>Total Capacity: <strong>${totalGB} GB</strong></p>
+            <p>Used Storage: <strong>${usedGB} GB</strong></p>
+            <p>Available Free: <strong>${freeGB} GB</strong></p>
+          </div>
+          <div>
+            <h4 style="margin-bottom: 10px; color: var(--text-primary); border-bottom: 1px solid var(--border-color); padding-bottom: 4px;">Top Folders (C:)</h4>
+            ${foldersHtml}
+          </div>
+        </div>
+        <div>
+          <h4 style="margin-bottom: 10px; color: var(--text-primary); border-bottom: 1px solid var(--border-color); padding-bottom: 4px;">Top Memory Consuming Processes</h4>
+          ${processesHtml}
+        </div>
+      `;
+
+      modalOverlay.classList.add('open');
+      lucide.createIcons();
+    }
+
+    function closeModal() {
+      modalOverlay.classList.remove('open');
+    }
+
+    // Close modal on click outside
+    modalOverlay.addEventListener('click', (e) => {
+      if (e.target === modalOverlay) closeModal();
+    });
+
+    async function sendMessage() {
+      const message = chatInput.value.trim();
+      if (!message || isGenerating) return;
+
+      const provider = providerSelect.value;
+      const config = defaults[provider];
+      const model = config.useSelect ? modelSelectGemini.value : (modelInput.value.trim() || config.placeholder);
+      const apiKey = apikeyInput.value.trim();
+
+      if (provider !== 'ollama' && !apiKey) {
+        alert(`API Key is required to call ${provider === 'gemini' ? 'Google Gemini' : 'OpenRouter'}. Please enter the key in the settings panel.`);
+        return;
+      }
+
+      // Reset textarea heights
+      chatInput.value = '';
+      chatInput.style.height = 'auto';
+      sendBtn.disabled = true;
+
+      welcomeScreen.style.display = 'none';
+      
+      // Append user bubble
+      appendMessage('user', message);
+      
+      // Create assistant placeholder
+      const messageId = 'msg_' + Date.now();
+      appendAssistantLoadingBubble(messageId);
+      
+      // Scroll to bottom
+      messagesList.scrollTop = messagesList.scrollHeight;
+
+      isGenerating = true;
+      setStatus('loading', 'Thinking...');
+
+      try {
+        const response = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            message, 
+            sessionId,
+            provider,
+            model,
+            apiKey
+          })
+        });
+        
+        const data = await response.json();
+        
+        // Remove loading state
+        const placeholder = document.getElementById(messageId);
+        if (placeholder) placeholder.remove();
+
+        if (data.success) {
+          appendMessage('assistant', data.response, data.steps);
+          updateStatusDisplay();
+        } else {
+          appendMessage('assistant', `⚠️ Error: ${data.error || 'Failed to complete reasoning.'}`);
+          setStatus('error', 'Query Failed');
+        }
+      } catch (err) {
+        console.error('Failed to communicate with agent API:', err);
+        const placeholder = document.getElementById(messageId);
+        if (placeholder) placeholder.remove();
+        
+        appendMessage('assistant', '⚠️ Failed to connect to the OpsisAI server. Make sure the Elysia backend is running.');
+        setStatus('error', 'Connection Error');
+      } finally {
+        isGenerating = false;
+        sendBtn.disabled = !chatInput.value.trim();
+        messagesList.scrollTop = messagesList.scrollHeight;
+      }
+    }
+
+    function appendMessage(role, content, steps = []) {
+      const msgDiv = document.createElement('div');
+      msgDiv.className = `message ${role}`;
+      
+      const timeString = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      
+      let bodyHtml = '';
+      if (role === 'assistant') {
+        const mdHtml = marked.parse(content);
+        let stepsHtml = '';
+        
+        if (steps && steps.length > 0) {
+          const accordionId = 'acc_' + Math.random().toString(36).substring(2, 10);
+          stepsHtml = `
+            <div class="reasoning-accordion">
+              <div class="reasoning-header" onclick="toggleAccordion('${accordionId}')">
+                <span>View Scan Sequence (${steps.length} actions)</span>
+                <i data-lucide="chevron-down" class="acc-chevron" id="chevron-${accordionId}" style="width: 12px; height: 12px; transition: transform 0.2s ease;"></i>
+              </div>
+              <div class="reasoning-body" id="body-${accordionId}" style="display: none;">
+                ${steps.map((step, idx) => `
+                  <div class="reasoning-step">
+                    <div class="step-thought"><strong>Thought ${idx+1}:</strong> ${step.thought}</div>
+                    <div class="step-tool">
+                      <i data-lucide="terminal" style="width: 10px; height: 10px;"></i>
+                      ${step.tool} (${JSON.stringify(step.args)})
+                    </div>
+                    <div class="step-observation">
+                      ${JSON.stringify(step.observation, null, 2)}
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          `;
+        }
+
+        bodyHtml = `
+          <div class="message-bubble">${mdHtml}${stepsHtml}</div>
+          <div class="message-info">
+            <span>OpsisAI</span>
+            <span>•</span>
+            <span>${timeString}</span>
+          </div>
+        `;
+      } else {
+        bodyHtml = `
+          <div class="message-bubble">${escapeHtml(content)}</div>
+          <div class="message-info">
+            <span>You</span>
+            <span>•</span>
+            <span>${timeString}</span>
+          </div>
+        `;
+      }
+
+      msgDiv.innerHTML = bodyHtml;
+      messagesList.appendChild(msgDiv);
+      lucide.createIcons();
+    }
+
+    function appendAssistantLoadingBubble(id) {
+      const msgDiv = document.createElement('div');
+      msgDiv.className = 'message assistant';
+      msgDiv.id = id;
+      
+      msgDiv.innerHTML = `
+        <div class="message-bubble" style="display: flex; align-items: center; gap: 8px; color: var(--text-secondary);">
+          <i data-lucide="loader" class="loading" style="width: 14px; height: 14px;"></i>
+          <span>OpsisAI is running diagnostics...</span>
+        </div>
+      `;
+      
+      messagesList.appendChild(msgDiv);
+      lucide.createIcons();
+    }
+
+    function toggleAccordion(id) {
+      const body = document.getElementById(`body-${id}`);
+      const chevron = document.getElementById(`chevron-${id}`);
+      if (body.style.display === 'none') {
+        body.style.display = 'flex';
+        chevron.style.transform = 'rotate(180deg)';
+      } else {
+        body.style.display = 'none';
+        chevron.style.transform = 'rotate(0deg)';
+      }
+    }
+
+    function escapeHtml(unsafe) {
+      return unsafe
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+  </script>
+</body>
+</html>
